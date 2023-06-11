@@ -47,6 +47,7 @@ async function run() {
         client.connect();
 
         const usersCollection = client.db('sportsDB').collection('users');
+        const classesCollection = client.db('sportsDB').collection('classes');
 
         app.post('/jwt',(req,res)=>{
             const user=req.body;
@@ -55,6 +56,20 @@ async function run() {
             res.send({token});
             
         })
+
+        //classes related API
+        app.post('/classes', async (req, res) => {
+            const user = req.body;
+            const result = await classesCollection.insertOne(user);
+            res.send(result);
+        });
+
+        app.get('/classes',async(req,res)=>{
+            const classes=await classesCollection.find().toArray();
+            res.send(classes);
+        })
+
+
 
         // Users related API
         app.post('/users', async (req, res) => {
