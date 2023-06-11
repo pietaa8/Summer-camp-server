@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const jwt =require('jsonwebtoken')
+const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
@@ -10,21 +10,21 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const verifyJWT=(req,res,next)=>{
-    const authorization=req.headers.authorization;
-    if(!authorization){
-        return res.status(401).send({error: true, message : 'unauthorized access'});
+const verifyJWT = (req, res, next) => {
+    const authorization = req.headers.authorization;
+    if (!authorization) {
+        return res.status(401).send({ error: true, message: 'unauthorized access' });
     }
 
     const token = authorization.split(' ')[1];
 
 
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,(err, decoded)=>{
-        if(err){
-            return res.status(401).send({error: true, message : 'unauthorized access'});
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ error: true, message: 'unauthorized access' });
         }
 
-        req.decoded=decoded;
+        req.decoded = decoded;
         next();
     })
 }
@@ -49,12 +49,12 @@ async function run() {
         const usersCollection = client.db('sportsDB').collection('users');
         const classesCollection = client.db('sportsDB').collection('classes');
 
-        app.post('/jwt',(req,res)=>{
-            const user=req.body;
-            const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn: '1hr'})
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1hr' })
 
-            res.send({token});
-            
+            res.send({ token });
+
         })
 
         //classes related API
@@ -64,8 +64,8 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/classes',async(req,res)=>{
-            const classes=await classesCollection.find().toArray();
+        app.get('/classes', async (req, res) => {
+            const classes = await classesCollection.find().toArray();
             res.send(classes);
         })
 
@@ -86,52 +86,52 @@ async function run() {
 
         // ...
 
-         //verifying admin
-        app.get('/users/admin/:email', verifyJWT ,async (req,res)=>{
-            const email=req.params.email;
-           
-            if(req.decoded.email!== email){
-                res.send({admin: false})
+        //verifying admin
+        app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                res.send({ admin: false })
             }
 
-            const query={email: email}
-            const user=await usersCollection.findOne(query);
-            const result={admin:user?.role==='admin'}
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result = { admin: user?.role === 'admin' }
             res.send(result);
         })
 
         //verifying Instructor
-        app.get('/users/instructor/:email', verifyJWT ,async (req,res)=>{
-            const email=req.params.email;
-           
-            if(req.decoded.email!== email){
-                res.send({instructor: false})
+        app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                res.send({ instructor: false })
             }
 
-            const query={email: email}
-            const user=await usersCollection.findOne(query);
-            const result={instructor:user?.role==='instructor'}
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result = { instructor: user?.role === 'instructor' }
             res.send(result);
         })
 
         // Update user role as admin
-        app.patch('/users/admin/:id',async (req,res)=>{
+        app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const filter = { _id: new ObjectId(id) };
             const updateDoc = {
-              $set: {
-                role: 'admin'
-              },
+                $set: {
+                    role: 'admin'
+                },
             };
-      
+
             const result = await usersCollection.updateOne(filter, updateDoc);
             res.send(result);
         })
-       
 
-         // Update user role as instructor
-         app.patch('/users/instructor/:id', async (req, res) => {
+
+        // Update user role as instructor
+        app.patch('/users/instructor/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const updateDoc = {
@@ -143,6 +143,51 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateDoc);
             res.send(result);
         });
+
+        // Update the status of the class to "approved"
+        app.patch('/classes/approve/:id', async (req, res) => {
+            const classId = req.params.id;
+            const filter = { _id: new ObjectId(classId) };
+            const updateDoc = {
+                $set: {
+                    status: 'approved'
+                }
+            };
+
+            const result = await classesCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
+        // Update the status of the class to "denied"
+        app.patch('/classes/deny/:id', async (req, res) => {
+            const classId = req.params.id;
+            const filter = { _id: new ObjectId(classId) };
+            const updateDoc = {
+                $set: {
+                    status: 'denied'
+                }
+            };
+
+            const result = await classesCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
+        // Update class status and feedback
+        app.patch('/classes/:id', async (req, res) => {
+            const classId = req.params.id;
+            const { status } = req.body;
+            const filter = { _id: new ObjectId(classId) };
+            const updateDoc = {
+                $set: {
+                    status
+                }
+            };
+
+            const result = await classesCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
+
 
 
 
