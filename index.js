@@ -4,7 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
-const stripe=require('stripe')(process.env.PAYMENT_SECRET_KEY)
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // Middleware
@@ -50,6 +50,7 @@ async function run() {
         const usersCollection = client.db('sportsDB').collection('users');
         const classesCollection = client.db('sportsDB').collection('classes');
         const selectedClassesCollection = client.db('sportsDB').collection('selectedclasses');
+        const paymentCollection = client.db('sportsDB').collection('payments');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
@@ -204,19 +205,32 @@ async function run() {
         });
         //creating payment intent
 
-        app.post('/create-payment-intent',verifyJWT,async(req,res)=>{
-            const {price}=req.body;
-            const amount=price*100;
-            const paymentIntent=await stripe.paymentIntents.create({
-                amount: amount,
-                currency: 'usd',
-                payment_method_types: ['card']
-            });
-            res.send({
-                clientSecret: paymentIntent.client_secret
-            })
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const { classId } = req.body;
 
-        })
+            try {
+                const classItem = await classesCollection.findOne({ _id: new ObjectId(classId) });
+                if (!classItem) {
+                    throw new Error('Class not found');
+                }
+
+                const amount = classItem.price * 100;
+                const paymentIntent = await stripe.paymentIntents.create({
+                    amount: amount,
+                    currency: 'usd',
+                    payment_method_types: ['card']
+                });
+
+                res.send({
+                    clientSecret: paymentIntent.client_secret
+                });
+            } catch (error) {
+                res.status(500).send({ error: true, message: error.message });
+            }
+        });
+
+        
+
 
 
 
