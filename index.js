@@ -102,6 +102,13 @@ async function run() {
             res.send(selectedClasses);
         })
 
+        app.delete('/selectedclasses/:id',async(req,res)=>{
+            const id=req.params.id;
+            const query={_id: new ObjectId(id)}
+            const result=await selectedClassesCollection.deleteOne(query);
+            res.send(result);
+        })
+
         // Verifying admin
         app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
