@@ -48,6 +48,7 @@ async function run() {
 
         const usersCollection = client.db('sportsDB').collection('users');
         const classesCollection = client.db('sportsDB').collection('classes');
+        const selectedClassesCollection = client.db('sportsDB').collection('selectedclasses');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
@@ -86,33 +87,47 @@ async function run() {
 
         // ...
 
-        //verifying admin
+        //selectedClasses related api
+
+        app.post('/selectedclasses', async (req, res) => {
+            const selectedClasses = req.body;
+            const result = await selectedClassesCollection.insertOne(selectedClasses);
+            res.send(result);
+        })
+
+        app.get('/selectedclasses', async (req, res) => {
+            const selectedClasses = await selectedClassesCollection.find().toArray();
+            res.send(selectedClasses);
+        })
+
+        // Verifying admin
         app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
             if (req.decoded.email !== email) {
-                res.send({ admin: false })
+                return res.send({ admin: false }); // Use return to exit the function
             }
 
-            const query = { email: email }
+            const query = { email: email };
             const user = await usersCollection.findOne(query);
-            const result = { admin: user?.role === 'admin' }
+            const result = { admin: user?.role === 'admin' };
             res.send(result);
-        })
+        });
 
-        //verifying Instructor
+        // Verifying Instructor
         app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
             if (req.decoded.email !== email) {
-                res.send({ instructor: false })
+                return res.send({ instructor: false }); // Use return to exit the function
             }
 
-            const query = { email: email }
+            const query = { email: email };
             const user = await usersCollection.findOne(query);
-            const result = { instructor: user?.role === 'instructor' }
+            const result = { instructor: user?.role === 'instructor' };
             res.send(result);
-        })
+        });
+
 
         // Update user role as admin
         app.patch('/users/admin/:id', async (req, res) => {
@@ -186,7 +201,7 @@ async function run() {
             const result = await classesCollection.updateOne(filter, updateDoc);
             res.send(result);
         });
-        
+
 
 
 
